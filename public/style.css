@@ -1,0 +1,28 @@
+/* CSS files add styling rules to your content */
+
+body {
+    margin: 2em;
+    font-family: 'Audiowide', cursive;
+  }
+
+  #controls{
+    float: left;
+    text-align: center;
+    width: 30%;
+    height: 80vh;
+    padding: 20px;
+    margin: 20px;
+    background-color: black;
+    color: white;
+  }
+
+  #defaultCanvas0{
+    width: 50%;
+    margin: 20px;
+  }
+  
+  h1 {
+    font-style: italic;
+    color: #373fff;
+  }
+  

@@ -12,6 +12,7 @@ let particles = [];
 let shootSound, explodeSound, flipSound, backgroundSound;
 
 let paused = false;
+let gameStart;
 
 //socket stuff not being used
 let socket;
@@ -27,13 +28,15 @@ function preload(){
 
 function setup() {
   // Canvas & color settings
+  textFont("Audiowide");
+  gameStart = false;
   backgroundSound.loop();
-  createCanvas(400, 400);
+  createCanvas(600, 600);
   colorMode(HSB, 360, 100, 100);
   rectMode(CENTER);
   player = new PlayerShip();
-  player2 = new PlayerShip2;
-  for (let i = 0; i < 3; i++) {
+  player2 = new PlayerShip2();
+  for (let i = 0; i < 10; i++) {
     asteroids.push(new Asteroid());
   }
 
@@ -46,10 +49,17 @@ function draw() {
     textSize(40);
     text('Game Paused', width/2- 140, height/2);
     textSize(12);
+  } else if (!gameStart) {
+      background(95);
+      textSize(40);
+      text('New Asteroids', 70, 150);
+      textSize(20);
+      text('Retro Remix', width / 3, 200);
+      text('Developed By Jason and Jason', 10, 250);
   } else {
 
-    
-    background(95);
+    let backgroundColor = color(20,30,90);
+    background(backgroundColor);
 
     for (let i = 0; i < bullets.length; i++) {
       bullets[i].display();
@@ -58,11 +68,17 @@ function draw() {
         player
       );
       let hitPlayer2 = bullets[i].checkPlayerHit(player2);
+
       if(hit && bullets[i].color !== player.color){
         player2.score += 1;
       } else if( hitPlayer2 && bullets[i].color !== player2.color){
         player.score += 1;
+      } else if(hit && bullets[i].color == player.color){
+        player.special +=1;
+      } else if(hitPlayer2 && bullets[i].color == player2.color){
+        player2.special +=1;
       }
+
       if (bullets[i].y < 0 || bullets[i].y > height || hit|| hitPlayer2 ) {
         bullets[i].explode();
         bullets.splice(i, 1);
@@ -90,18 +106,26 @@ function draw() {
       part.fall()
       if(part.x <0 || part.x > width || part.y <0 || part.y >height){
         particles.splice(p,1);
-        console.log(particles.length);
       }
+    }
+
+    
+    if ((player.score || player2.score) == 25) {
+      gameOver = true;
+      textSize(40);
+      text('GAME OVER', width / 2 - 140, height / 2);
     }
 
     fill(0);
     text("Player 1 Score: " +  player.score, 10,20);
     player.display();
+    player.displayCharge();
     player.move();
     player.update();
 
     fill(0);
     text("Player 2 Score: " +  player2.score, 10,380);
+    player2.displayCharge();
     player2.display();
     player2.move();
     player2.update();
@@ -109,10 +133,13 @@ function draw() {
 }
 
 function keyPressed() {
+  gameStart = true;
   player.flip();
   player.shoot();
+  player.specialMove();
   player2.shoot();
   player2.flip();
+  player2.specialMove();
 
   if(keyCode == 27){
     if(paused){
@@ -121,6 +148,17 @@ function keyPressed() {
       paused = true
     }
   }
+  
+  if (gameOver) {
+    gameStart = false;
+    gameOver = false;    
+    player = new PlayerShip();
+    player2 = new PlayerShip2();
+    asteroids = [];
+    for (let i = 0; i < 3; i++) {
+      asteroids.push(new Asteroid());
+    }
+  } 
 }
 
 class PlayerShip {
@@ -134,6 +172,7 @@ class PlayerShip {
     this.rotation = 0;
     this.velocity = createVector(0,0);
     this.score = 0;
+    this.special = 0;
   }
 
   update() {
@@ -207,6 +246,30 @@ class PlayerShip {
       shootSound.play();
     }
   }
+
+  displayCharge(){
+    fill(this.color);
+    let position = {
+      x: 20,
+      y: 30
+    }
+    for(let i=0; i<this.special; i++){
+      rect(position.x, position.y, 5,5);
+      position.x += 10;
+    }
+  }
+
+  specialMove(){
+    if(keyCode == 191){
+      for(let i =0; i<this.special; i++ ){
+        let rotation = random(0,2*PI);
+        let x = 25*sin(-rotation) + this.position.x;
+        let y = 25*cos(-rotation) + this.position.y;
+        bullets.push(new Bullet(x, y, this.color, rotation));
+      }
+      player.special = 0;
+    }
+  }
 }
 class PlayerShip2 {
   constructor() {
@@ -217,6 +280,7 @@ class PlayerShip2 {
     this.rotation = 0;
     this.velocity = createVector(0,0);
     this.score = 0;
+    this.special = 0;
   }
 
   update() {
@@ -299,6 +363,32 @@ class PlayerShip2 {
       let newY = 25*cos(-1*(this.nose - PI/2)) + this.position.y;
       bullets.push(new Bullet(newX, newY, this.color, this.nose));
       shootSound.play();
+    }
+  }
+
+  
+  displayCharge(){
+    fill(this.color);
+    let position = {
+      x: 10,
+      y: height - 40
+    }
+    for(let i=0; i<this.special; i++){
+      rect(position.x, position.y, 5,5);
+      position.x += 10;
+    }
+  }
+
+  specialMove(){
+    if(keyCode == 82){
+      for(let i =0; i<this.special; i++ ){
+        let rotation = random(-2*PI,2*PI);
+        console.log(rotation);
+        let x = 25*sin(-rotation) + this.position.x;
+        let y = 25*cos(-rotation) + this.position.y;
+        bullets.push(new Bullet(x, y, this.color, rotation));
+      }
+      this.special = 0;
     }
   }
 }
@@ -391,6 +481,7 @@ class Asteroid {
     this.xSpeed = random(-2, 2);
     this.ySpeed = random(-2, 2);
     this.offset = [];
+    this.color = random(360);
     for (var i = 0; i < 10; i++) {
       this.offset[i] = random(-3, 3);
     }
@@ -399,7 +490,7 @@ class Asteroid {
   display() {
     push();
     translate(this.position.x, this.position.y);
-    fill(360); 
+    fill(this.color, 40, 90); 
     beginShape();
     for (var i = 0; i < 10; i++) {
       var angle = map(i, 0, 10, 0, TWO_PI);
